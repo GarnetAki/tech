@@ -21,7 +21,6 @@ import java.util.UUID;
 
 public class BankTest {
     CentralBank centralBank;
-
     Rate rate;
 
     @BeforeEach
