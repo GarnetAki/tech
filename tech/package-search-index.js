@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"ru.soloviev.bankServiceTests"},{"l":"ru.soloviev.console"},{"l":"ru.soloviev.domain.entities"},{"l":"ru.soloviev.domain.exceptions"},{"l":"ru.soloviev.domain.interfaces"},{"l":"ru.soloviev.domain.models"},{"l":"ru.soloviev.domain.services"}];updateSearchResults();
