@@ -1,12 +1,12 @@
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import ru.soloviev.DAO.Dao.CatDao;
-import ru.soloviev.DAO.Dao.UserDao;
-import ru.soloviev.DAO.Entities.Cat;
-import ru.soloviev.DAO.Entities.User;
-import ru.soloviev.DAO.Models.Breed;
-import ru.soloviev.DAO.Models.Color;
-import ru.soloviev.DAO.Models.Name;
+import ru.soloviev.Dao.CatDao;
+import ru.soloviev.Dao.UserDao;
+import ru.soloviev.Entities.Cat;
+import ru.soloviev.Entities.User;
+import ru.soloviev.Models.Breed;
+import ru.soloviev.Models.Color;
+import ru.soloviev.Models.Name;
 import ru.soloviev.Mappers.UserMapper;
 
 
