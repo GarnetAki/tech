@@ -411,8 +411,8 @@ public class CUI implements UI {
 
         try
         {
-            centralBank.CheckFutureBalance(Duration.parse(count), UUID.fromString(bankId), UUID.fromString(accountId));
-            System.out.println("Money withdrawn.");
+            var balance = centralBank.CheckFutureBalance(Duration.parse(count), UUID.fromString(bankId), UUID.fromString(accountId));
+            System.out.println("Future balance." + balance);
         }catch (Exception e)
         {
             System.out.println(e);
