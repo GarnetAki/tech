@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.UUID;
 
-public class CUI implements UI {
+public class CLI implements UI {
     private static final IAccountCreator creator = new AccountCreator();
 
     private String inputString;
@@ -20,7 +20,7 @@ public class CUI implements UI {
 
     private final Scanner in = new Scanner(System.in);
 
-    public CUI(){
+    public CLI(){
         inputString = "";
     }
 

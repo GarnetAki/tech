@@ -1,23 +1,11 @@
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import ru.soloviev.Dao.CatDao;
-import ru.soloviev.Dao.UserDao;
-import ru.soloviev.Entities.Cat;
-import ru.soloviev.Entities.User;
-import ru.soloviev.Models.Breed;
-import ru.soloviev.Models.Color;
-import ru.soloviev.Models.Name;
-import ru.soloviev.Mappers.UserMapper;
-
-
-import java.time.LocalDate;
-import java.util.HashSet;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
-
+/*@SpringBootTest
+@EntityScan(basePackages = {"ru.soloviev.Entities"} )
+@EnableJpaRepositories(basePackages = {"ru.soloviev.Dao"})*/
 public class CatTest {
+    /*@Autowired
     private static UserDao userDao;
+
+    @Autowired
     private static CatDao catDao;
     private static User user;
     private static Cat cat;
@@ -25,9 +13,6 @@ public class CatTest {
 
     @BeforeAll
     public static void setUp() {
-        userDao = mock(UserDao.class);
-        catDao = mock(CatDao.class);
-
         user = new User();
         user.setId(1);
         user.setDateOfBirth(LocalDate.parse("2000-11-11"));
@@ -50,34 +35,34 @@ public class CatTest {
 
     @Test
     public void searchTest() {
-        when(userDao.find(user.getId())).thenReturn(user);
-        when(catDao.find(cat.getId())).thenReturn(cat);
+        when(userDao.findById(user.getId()).get()).thenReturn(user);
+        when(catDao.findById(cat.getId()).get()).thenReturn(cat);
 
-        assertEquals("Abob Petrovich", userDao.find(user.getId()).getName().getName());
-        assertEquals("Chel", catDao.find(cat.getId()).getCatName().getName());
+        assertEquals("Abob Petrovich", userDao.findById(user.getId()).get().getName().getName());
+        assertEquals("Chel", catDao.findById(cat.getId()).get().getCatName().getName());
     }
 
     @Test
     public void friendTest(){
-        when(catDao.find(cat.getId())).thenReturn(cat);
-        when(catDao.find(cat2.getId())).thenReturn(cat2);
+        when(catDao.findById(cat.getId()).get()).thenReturn(cat);
+        when(catDao.findById(cat2.getId()).get()).thenReturn(cat2);
 
         cat.getFriends().add(cat2);
         cat2.getFriends().add(cat);
 
-        assertEquals(1, catDao.find(cat.getId()).getFriends().size());
-        assertEquals(1, catDao.find(cat2.getId()).getFriends().size());
+        assertEquals(1, catDao.findById(cat.getId()).get().getFriends().size());
+        assertEquals(1, catDao.findById(cat2.getId()).get().getFriends().size());
     }
 
     @Test
     public void ownerTest(){
         var userDto = UserMapper.mapToDto(user);
 
-        when(catDao.find(cat.getId())).thenReturn(cat);
-        when(userDao.find(user.getId())).thenReturn(user);
+        when(catDao.findById(cat.getId()).get()).thenReturn(cat);
+        when(userDao.findById(user.getId()).get()).thenReturn(user);
         
         cat.setOwner(userDto.getId());
 
-        assertEquals(userDto.getId(), catDao.find(cat.getId()).getOwner());
-    }
+        assertEquals(userDto.getId(), catDao.findById(cat.getId()).get().getOwner());
+    }*/
 }

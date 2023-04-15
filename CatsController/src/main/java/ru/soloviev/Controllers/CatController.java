@@ -1,129 +1,150 @@
 package ru.soloviev.Controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 import ru.soloviev.Dao.CatDao;
-import ru.soloviev.Entities.Cat;
+import ru.soloviev.Dto.CatDto;
+import ru.soloviev.Dto.CatIdDto;
+import ru.soloviev.Dto.TwoIdsDto;
+import ru.soloviev.Mappers.CatMapper;
 import ru.soloviev.Models.Breed;
 import ru.soloviev.Models.Color;
 import ru.soloviev.Models.Name;
+import ru.soloviev.Services.CatService;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+@Controller
+@RequestMapping("/cats")
 public class CatController {
-    private CatDao catDao;
 
-    public CatController(){
-        catDao = new CatDao();
+    private final CatService catService;
+
+    @Autowired
+    public CatController(CatDao catDao){
+        this.catService = new CatService(catDao);
     }
 
-    public void createCat(String name, String color, String birthday, String breed, Integer ownerId){
-        Cat cat = new Cat();
-        cat.setCatName(new Name(name));
-        cat.setDateOfBirth(LocalDate.parse(birthday));
-        cat.setColor(Color.valueOf(color));
-        cat.setBreed(new Breed(breed));
-        cat.setOwner(ownerId);
-        catDao.save(cat);
-    }
-
-    public void deleteCat(Integer id){
-        for (Integer catFriendId : getCatFriendIds(id))
-            deleteFriendship(id, catFriendId);
-
-        catDao.delete(catDao.find(id));
-    }
-
-    public List<Integer> getAllCatIds(){
-        return catDao.findAll().stream().map(Cat::getId).toList();
-    }
-
-    public void addFriendship(Integer id1, Integer id2){
-        catDao.addFriend(id1,id2);
-    }
-
-    public void deleteFriendship(Integer id1, Integer id2){
-        catDao.removeFriend(id1, id2);
-    }
-
-    public String getCatName(Integer id){
-        return catDao.find(id).getCatName().getName();
-    }
-
-    public String getCatColor(Integer id){
-        return catDao.find(id).getColor().toString();
-    }
-
-    public String getCatBirthday(Integer id){
-        return catDao.find(id).getDateOfBirth().toString();
-    }
-
-    public String getCatBreed(Integer id){
-        return catDao.find(id).getBreed().getBreed();
-    }
-
-    public List<Integer> getCatFriendIds(Integer id){
-        return catDao.find(id).getFriends().stream().map(Cat::getId).toList();
-    }
-
-    public Integer getCatOwnerId(Integer id){
-        return catDao.find(id).getOwner();
-    }
-
-    public List<Integer> findCatIdsByBreed(String breed){
-        List<Integer> list = new ArrayList<>();
-        for (Cat cat : catDao.findAll()){
-            if (cat.getBreed().getBreed().equals(breed))
-                list.add(cat.getId());
+    @GetMapping()
+    @ResponseBody
+    public List<String> getAllCats(){
+        var listCats = catService.findAll();
+        var answer = new ArrayList<String>();
+        for (var cat : listCats){
+            answer.add(CatMapper.mapToString(cat));
         }
-        return list;
+        return answer;
     }
 
-    public List<Integer> findCatIdsByBirthday(String birthday){
-        List<Integer> list = new ArrayList<>();
-        for (Cat cat : catDao.findAll()){
-            if (cat.getDateOfBirth().toString().equals(birthday))
-                list.add(cat.getId());
-        }
-        return list;
+    @GetMapping("/{id}")
+    @ResponseBody
+    public String getCatById(@PathVariable(required = false) Integer id){
+        var cat = catService.find(id);
+        return CatMapper.mapToString(cat);
     }
 
-    public List<Integer> findCatIdsByName(String name){
-        List<Integer> list = new ArrayList<>();
-        for (Cat cat : catDao.findAll()){
-            if (cat.getCatName().getName().equals(name))
-                list.add(cat.getId());
-        }
-        return list;
+    @GetMapping("/delete")
+    public String catDeleteForm(Model model) {
+        model.addAttribute("cat", new CatIdDto());
+        return "cat-delete";
     }
 
-    public void changeCatName(Integer id, String name){
-        Cat cat = catDao.find(id);
-        cat.setCatName(new Name(name));
-        catDao.update(cat);
+    @PostMapping("/delete")
+    public String catDeleteSubmit(@ModelAttribute CatIdDto catIdDto, Model model) {
+        var deletedCat = catService.delete(catIdDto);
+        model.addAttribute("cat", deletedCat);
+        return "cat-delete-return";
     }
 
-    public void changeCatBreed(Integer id, String breed){
-        Cat cat = catDao.find(id);
-        cat.setBreed(new Breed(breed));
-        catDao.update(cat);
+    @GetMapping("/add_friendship")
+    public String catAddFriendshipForm(Model model) {
+        model.addAttribute("cat", new TwoIdsDto());
+        return "cat-add-friendship";
     }
 
-    public void changeCatColor(Integer id, String color){
-        Cat cat = catDao.find(id);
-        cat.setColor(Color.valueOf(color));
-        catDao.update(cat);
+    @PostMapping("/add_friendship")
+    public String catAddFriendshipSubmit(@ModelAttribute TwoIdsDto catIds) {
+        catService.addFriend(catIds.getCat1(), catIds.getCat2());
+        return "cat-add-friendship-return";
     }
 
-    public void changeCatBirthday(Integer id, String birthday){
-        Cat cat = catDao.find(id);
-        cat.setDateOfBirth(LocalDate.parse(birthday));
-        catDao.update(cat);
+    @GetMapping("/delete_friendship")
+    public String catDeleteFriendshipForm(Model model) {
+        model.addAttribute("cat", new TwoIdsDto());
+        return "cat-delete-friendship";
     }
 
-    public void changeCatOwner(Integer catId, Integer ownerId){
-        Cat cat = catDao.find(catId);
-        cat.setOwner(ownerId);
-        catDao.update(cat);
+    @PostMapping("/delete_friendship")
+    public String catDeleteFriendshipSubmit(@ModelAttribute TwoIdsDto catIds) {
+        catService.removeFriend(catIds.getCat1(), catIds.getCat2());
+        return "cat-delete-friendship-return";
+    }
+
+    @GetMapping("/find_cat_friends/{id}")
+    @ResponseBody
+    public List<String> getCatFriends(@PathVariable(required = false) Integer id){
+        return catService.find(id).getFriends().stream().map(catIdDto -> CatMapper.mapToString(catService.find(catIdDto.getId()))).toList();
+    }
+
+    @GetMapping("/find_by_breed/{breed}")
+    @ResponseBody
+    public List<String> findCatIdsByBreed(@PathVariable(required = false) String breed){
+        List<CatDto> list = catService.findAll(new Breed(breed));
+        return list.stream().map(CatMapper::mapToString).toList();
+    }
+
+    @GetMapping("/find_by_color/{color}")
+    @ResponseBody
+    public List<String> findCatIdsByColor(@PathVariable(required = false) String color){
+        List<CatDto> list = catService.findAll(Color.valueOf(color));
+        return list.stream().map(CatMapper::mapToString).toList();
+    }
+
+    @GetMapping("/find_by_name/{name}")
+    @ResponseBody
+    public List<String> findCatIdsByName(@PathVariable(required = false) String name){
+        List<CatDto> list = catService.findAll(new Name(name));
+        return list.stream().map(CatMapper::mapToString).toList();
+    }
+
+    @GetMapping("/find_by_dob/{date}")
+    @ResponseBody
+    public List<String> findCatIdsByDateOfBirth(@PathVariable(required = false) String date){
+        List<CatDto> list = catService.findAll(LocalDate.parse(date));
+        return list.stream().map(CatMapper::mapToString).toList();
+    }
+
+    @GetMapping("/change_cat")
+    public String catChangeForm(Model model) {
+        model.addAttribute("cat", new CatDto());
+        return "cat-change";
+    }
+
+    @PostMapping("/change_cat")
+    public String catChangeSubmit(@ModelAttribute CatDto cat, Model model) {
+        var catOld = catService.find(cat.getId());
+
+        if (cat.getName() != null)
+            catOld.setName(cat.getName());
+
+        if (cat.getColor() != null)
+            catOld.setColor(cat.getColor());
+
+        if (cat.getBreed() != null)
+            catOld.setBreed(cat.getBreed());
+
+        if (cat.getDateOfBirth() != null)
+            catOld.setDateOfBirth(cat.getDateOfBirth());
+
+        model.addAttribute("cat", catService.save(catOld));
+        return "cat-change-return";
+    }
+
+    public CatService getCatService(){
+        return catService;
     }
 }

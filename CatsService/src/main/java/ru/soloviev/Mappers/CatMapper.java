@@ -1,18 +1,20 @@
 package ru.soloviev.Mappers;
 
 import ru.soloviev.Dao.CatDao;
-import ru.soloviev.Entities.Cat;
 import ru.soloviev.Dto.CatDto;
 import ru.soloviev.Dto.CatIdDto;
+import ru.soloviev.Entities.Cat;
 
 public class CatMapper {
 
-    private static final CatDao catDao = new CatDao();
+    private static CatDao catDao;
 
-    public CatMapper() {}
+    public CatMapper(CatDao catDao) {
+        CatMapper.catDao = catDao;
+    }
 
     public static Cat mapToEntity(CatIdDto dto) {
-        return catDao.find(dto.getId());
+        return catDao.findById(dto.getId()).orElseThrow();
     }
 
     public static Cat mapToEntity(CatDto dto) {
@@ -36,5 +38,14 @@ public class CatMapper {
         catDto.setOwnerId(cat.getOwner());
         catDto.setFriends(cat.getFriends().stream().map(CatMapper::mapToIdDto).toList());
         return catDto;
+    }
+
+    public static String mapToString(CatDto cat) {
+        return cat.getId() + " | " +
+                cat.getName().getName() + " | " +
+                cat.getColor() + " | " +
+                cat.getDateOfBirth() + " | " +
+                cat.getBreed().getBreed() + " | " +
+                cat.getOwnerId();
     }
 }

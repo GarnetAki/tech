@@ -18,4 +18,8 @@ public class Breed {
 
         this.breed = breed;
     }
+
+    public String toString(){
+        return getBreed();
+    }
 }

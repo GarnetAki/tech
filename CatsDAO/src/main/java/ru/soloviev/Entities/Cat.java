@@ -1,7 +1,6 @@
 package ru.soloviev.Entities;
 
 import jakarta.persistence.*;
-
 import ru.soloviev.Models.Breed;
 import ru.soloviev.Models.Color;
 import ru.soloviev.Models.Name;
@@ -33,7 +32,7 @@ public class Cat {
     @JoinTable(name = "cat_cat",
     joinColumns = @JoinColumn(name = "cat1_id"),
     inverseJoinColumns = @JoinColumn(name = "cat2_id"))
-    private Set<Cat> friends;
+    private Set<Cat> friends = new HashSet<>();
 
     public Cat(){}
 
@@ -44,7 +43,6 @@ public class Cat {
         this.color = color;
         this.dateOfBirth = dateOfBirth.toString();
         this.ownerId = ownerId;
-        friends = new HashSet<>();
     }
 
     public Integer getId() {

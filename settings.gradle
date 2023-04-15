@@ -3,6 +3,5 @@ include 'Banks'
 include 'Cats'
 include 'CatsService'
 include 'CatsDAO'
-include 'CatsService'
 include 'CatsController'
 

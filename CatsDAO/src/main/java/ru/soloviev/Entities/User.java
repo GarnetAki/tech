@@ -1,12 +1,12 @@
 package ru.soloviev.Entities;
 
+import jakarta.persistence.*;
 import ru.soloviev.Models.Name;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "USER")
+@Table(name = "users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
