@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <title>Getting Started: Handling Form Submission</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<h1>Cat list</h1>
+<table>
+    <tr>
+        <th>Id</th>
+        <th>Name</th>
+        <th>Breed</th>
+        <th>Color</th>
+        <th>Date of Birth</th>
+        <th>Owner id</th>
+    </tr>
+    <tr th:each="cat : ${lists}">
+        <td th:text="${cat.id}" />
+        <td th:text="${cat.name.getName()}" />
+        <td th:text="${cat.breed.getBreed()}" />
+        <td th:text="${cat.color}" />
+        <td th:text="${cat.dateOfBirth}" />
+        <td th:text="${cat.ownerId}" />
+    </tr>
+</table>
+<a href="/">Main page</a>
+</body>
+</html>

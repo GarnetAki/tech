@@ -4,7 +4,6 @@ import ru.soloviev.Dao.CatDao;
 import ru.soloviev.Dto.CatDto;
 import ru.soloviev.Dto.CatIdDto;
 import ru.soloviev.Entities.Cat;
-
 public class CatMapper {
 
     private static CatDao catDao;

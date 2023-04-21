@@ -1,5 +1,6 @@
 package ru.soloviev.Controllers;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,7 +12,6 @@ import ru.soloviev.Dto.TwoIdsDto;
 import ru.soloviev.Dto.UserDto;
 import ru.soloviev.Dto.UserIdDto;
 import ru.soloviev.Mappers.CatMapper;
-import ru.soloviev.Mappers.UserMapper;
 import ru.soloviev.Models.Name;
 import ru.soloviev.Services.UserService;
 
@@ -33,21 +33,23 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    @ResponseBody
-    public List<String> getAllUsers(){
-        var listUsers = userService.findAll();
-        var answer = new ArrayList<String>();
-        for (var user : listUsers){
-            answer.add(UserMapper.mapToString(user));
-        }
-        return answer;
+    public String getAllUsers(Model model){
+        var list = userService.findAll();
+        model.addAttribute("lists", list);
+        return "user-list";
     }
 
     @GetMapping("/users/{id}")
-    @ResponseBody
-    public String getUserById(@PathVariable(required = false) Integer id){
-        var user = userService.find(id);
-        return UserMapper.mapToString(user);
+    public String getUserById(@Valid @PathVariable() Integer id, Model model){
+        try{
+            var user = userService.find(id);
+            var list = new ArrayList<>();
+            list.add(user);
+            model.addAttribute("lists", list);
+            return "user-list";
+        }catch (Exception e){
+            return "404";
+        }
     }
 
     @GetMapping("/users/create")
@@ -57,10 +59,14 @@ public class UserController {
     }
 
     @PostMapping("/users/create")
-    public String userCreateSubmit(@ModelAttribute UserDto userDto, Model model) {
-        var savedUser = userService.save(userDto);
-        model.addAttribute("user", savedUser);
-        return "user-create-return";
+    public String userCreateSubmit(@Valid @ModelAttribute UserDto userDto, Model model) {
+        try{
+            var savedUser = userService.save(userDto);
+            model.addAttribute("user", savedUser);
+            return "user-create-return";
+        }catch (Exception e){
+            return "400";
+        }
     }
 
     @GetMapping("/users/delete")
@@ -70,29 +76,49 @@ public class UserController {
     }
 
     @PostMapping("/users/delete")
-    public String userDeleteSubmit(@ModelAttribute UserIdDto userIdDto, Model model) {
-        for (var cat : catController.getCatService().findAll()){
-            if (cat.getOwnerId().equals(userIdDto.getId()))
-                catController.getCatService().delete(CatMapper.mapToIdDto(CatMapper.mapToEntity(cat)));
+    public String userDeleteSubmit(@Valid @ModelAttribute UserIdDto userIdDto, Model model) {
+        try{
+            for (var cat : catController.getCatService().findAll()){
+                if (cat.getOwnerId().equals(userIdDto.getId()))
+                    catController.getCatService().delete(CatMapper.mapToIdDto(CatMapper.mapToEntity(cat)));
+            }
+        }catch (Exception e){
+            return "500";
         }
-
-        var deletedUser = userService.delete(userIdDto);
-        model.addAttribute("user", deletedUser);
-        return "user-delete-return";
+        try{
+            userService.find(userIdDto.getId());
+        }catch (Exception e){
+            return "400";
+        }
+        try{
+            var deletedUser = userService.delete(userIdDto);
+            model.addAttribute("user", deletedUser);
+            return "user-delete-return";
+        }catch (Exception e){
+            return "500";
+        }
     }
 
     @GetMapping("/users/find_by_name/{name}")
-    @ResponseBody
-    public List<String> findUserIdsByName(@PathVariable(required = false) String name){
-        List<UserDto> list = userService.findAll(new Name(name));
-        return list.stream().map(UserMapper::mapToString).toList();
+    public String findUserIdsByName(@PathVariable() String name, Model model){
+        try{
+            List<UserDto> list = userService.findAll(new Name(name));
+            model.addAttribute("lists", list);
+            return "user-list";
+        }catch (Exception e){
+            return "404";
+        }
     }
 
     @GetMapping("/users/find_by_dob/{date}")
-    @ResponseBody
-    public List<String> findUserIdsByDateOfBirth(@PathVariable(required = false) String date){
-        List<UserDto> list = userService.findAll(LocalDate.parse(date));
-        return list.stream().map(UserMapper::mapToString).toList();
+    public String findUserIdsByDateOfBirth(@PathVariable() String date,  Model model){
+        try{
+            List<UserDto> list = userService.findAll(LocalDate.parse(date));
+            model.addAttribute("lists", list);
+            return "user-list";
+        }catch (Exception e){
+            return "404";
+        }
     }
 
     @GetMapping("/users/change_user")
@@ -102,24 +128,38 @@ public class UserController {
     }
 
     @PostMapping("/users/change_user")
-    public String userChangeSubmit(@ModelAttribute UserDto user, Model model) {
-        var userOld = userService.find(user.getId());
+    public String userChangeSubmit(@Valid @ModelAttribute UserDto user, Model model) {
+        try{
+            var userOld = userService.find(user.getId());
 
-        if (user.getName() != null)
-            userOld.setName(user.getName());
+            if (user.getName() != null)
+                userOld.setName(user.getName());
 
-        if (user.getDateOfBirth() != null)
-            userOld.setDateOfBirth(user.getDateOfBirth());
+            if (user.getDateOfBirth() != null)
+                userOld.setDateOfBirth(user.getDateOfBirth());
 
-        model.addAttribute("user", userService.save(userOld));
-        return "user-change-return";
+            model.addAttribute("user", userService.save(userOld));
+            return "user-change-return";
+        }catch (Exception e){
+            return "400";
+        }
     }
 
     @GetMapping("/users/get_cats/{id}")
-    @ResponseBody
-    public List<String> getUserCats(@PathVariable(required = false) Integer id){
-        UserIdDto userIdDto = new UserIdDto(id);
-        return catController.getCatService().findAllByOwner(userIdDto).stream().map(CatMapper::mapToString).toList();
+    public String getUserCats(@Valid @PathVariable() Integer id, Model model){
+        try {
+            userService.find(id);
+        }catch (Exception e){
+            return "404";
+        }
+        try{
+            UserIdDto userIdDto = new UserIdDto(id);
+            var list = catController.getCatService().findAllByOwner(userIdDto);
+            model.addAttribute("lists", list);
+            return "cat-list";
+        }catch (Exception e){
+            return "404";
+        }
     }
 
     @GetMapping("/cats/change_owner")
@@ -129,12 +169,16 @@ public class UserController {
     }
 
     @PostMapping("/cats/change_owner")
-    public String changeCatOwnerSubmit(@ModelAttribute TwoIdsDto idsDto, Model model) {
-        userService.find(idsDto.getCat2().getId());
-        var cat = catController.getCatService().find(idsDto.getCat1().getId());
-        cat.setOwnerId(idsDto.getCat2().getId());
-        model.addAttribute("cat", catController.getCatService().save(cat));
-        return "cat-change-owner-return";
+    public String changeCatOwnerSubmit(@Valid @ModelAttribute TwoIdsDto idsDto, Model model) {
+        try{
+            userService.find(idsDto.getCat2().getId());
+            var cat = catController.getCatService().find(idsDto.getCat1().getId());
+            cat.setOwnerId(idsDto.getCat2().getId());
+            model.addAttribute("cat", catController.getCatService().save(cat));
+            return "cat-change-owner-return";
+        }catch (Exception e){
+            return "400";
+        }
     }
 
     @GetMapping("/cats/create")
@@ -144,9 +188,13 @@ public class UserController {
     }
 
     @PostMapping("/cats/create")
-    public String catCreateSubmit(@ModelAttribute CatDto catDto, Model model) {
-        var savedCat = catController.getCatService().save(catDto);
-        model.addAttribute("cat", savedCat);
-        return "cat-create-return";
+    public String catCreateSubmit(@Valid @ModelAttribute CatDto catDto, Model model) {
+        try{
+            var savedCat = catController.getCatService().save(catDto);
+            model.addAttribute("cat", savedCat);
+            return "cat-create-return";
+        }catch (Exception e){
+            return "400";
+        }
     }
 }
