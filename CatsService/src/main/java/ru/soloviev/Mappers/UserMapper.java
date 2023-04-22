@@ -1,17 +1,20 @@
 package ru.soloviev.Mappers;
 
 import ru.soloviev.Dao.UserDao;
-import ru.soloviev.Entities.User;
 import ru.soloviev.Dto.UserDto;
 import ru.soloviev.Dto.UserIdDto;
+import ru.soloviev.Entities.User;
 
 public class UserMapper {
-    private static final UserDao userDao = new UserDao();
 
-    private UserMapper() {}
+    private static UserDao userDao;
+
+    public UserMapper(UserDao userDao) {
+        UserMapper.userDao = userDao;
+    }
 
     public static User mapToEntity(UserIdDto dto) {
-        return userDao.find(dto.getId());
+        return userDao.getReferenceById(dto.getId());
     }
 
     public static User mapToEntity(UserDto dto) {
@@ -24,5 +27,11 @@ public class UserMapper {
         userDto.setName(user.getName());
         userDto.setDateOfBirth(user.getDateOfBirth());
         return userDto;
+    }
+
+    public static String mapToString(UserDto user) {
+        return user.getId() + " | " +
+                user.getName().getName() + " | " +
+                user.getDateOfBirth();
     }
 }

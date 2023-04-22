@@ -1,5 +1,7 @@
 package ru.soloviev;
 
+import org.apache.commons.httpclient.HttpException;
+
 public class Validator {
     public void validateName(String string){
         if (string == null) throw new NullPointerException();

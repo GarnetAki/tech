@@ -18,4 +18,8 @@ public class Name {
 
         this.name = name;
     }
+
+    public String toString(){
+        return getName();
+    }
 }

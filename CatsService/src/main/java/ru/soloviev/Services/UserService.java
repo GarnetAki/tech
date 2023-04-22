@@ -1,7 +1,7 @@
 package ru.soloviev.Services;
 
+import org.springframework.data.domain.Pageable;
 import ru.soloviev.Dao.UserDao;
-import ru.soloviev.Entities.User;
 import ru.soloviev.Dto.UserDto;
 import ru.soloviev.Dto.UserIdDto;
 import ru.soloviev.Mappers.UserMapper;
@@ -11,32 +11,45 @@ import java.util.List;
 public class UserService {
     private final UserDao userDao;
 
+    private final UserMapper userMapper;
+
     public UserService(UserDao userDao) {
         this.userDao = userDao;
+        userMapper = new UserMapper(this.userDao);
     }
 
-    public UserDto save(UserIdDto userId) {
-        var user = UserMapper.mapToEntity(userId);
-        userDao.save(user);
+    public UserDto save(UserDto user) {
+        var newUser = userMapper.mapToEntity(user);
+        userDao.saveAndFlush(newUser);
 
-        return UserMapper.mapToDto(user);
+        return userMapper.mapToDto(newUser);
     }
 
     public UserDto find(Integer id) {
-        return UserMapper.mapToDto(userDao.find(id));
+        return userMapper.mapToDto(userDao.getReferenceById(id));
     }
 
-    public List<User> findAll() {
-        return userDao.findAll();
+    public List<UserDto> findAll() {
+        return userDao.findAll().stream().map(UserMapper::mapToDto).toList();
     }
 
-    public UserDto update(UserIdDto userId) {
-        User user = userDao.update(UserMapper.mapToEntity(userId));
-        return UserMapper.mapToDto(user);
+    public List<UserDto> findAll(Pageable pageable){
+        return userDao.findAll(pageable).stream().map(UserMapper::mapToDto).toList();
+    }
+
+    public List<UserDto> findAll(Object object){
+
+        if (object.getClass().getSimpleName().equals("Name"))
+            return userDao.findAllByName(object.toString()).stream().map(UserMapper::mapToDto).toList();
+
+        if (object.getClass().getSimpleName().equals("LocalDate"))
+            return userDao.findAllByDateOfBirth(object.toString()).stream().map(UserMapper::mapToDto).toList();
+
+        throw new NullPointerException();
     }
 
     public UserDto delete(UserIdDto userId) {
-        var user = UserMapper.mapToEntity(userId);
+        var user = userMapper.mapToEntity(userId);
         userDao.delete(user);
 
         return UserMapper.mapToDto(user);

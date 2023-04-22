@@ -1,0 +1,15 @@
+<!DOCTYPE HTML>
+<html xmlns:th="https://www.thymeleaf.org">
+<head>
+  <title>Getting Started: Handling Form Submission</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+<h1>Changed user:</h1>
+<p th:text="'id: ' + ${user.id}" />
+<p th:text="'name: ' + ${user.name.getName()}" />
+<p th:text="'date of birth: ' + ${user.dateOfBirth}" />
+<a href="/">Main page</a>
+<a href="/users">All users</a>
+</body>
+</html>
