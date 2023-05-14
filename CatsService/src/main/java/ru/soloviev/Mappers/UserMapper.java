@@ -18,7 +18,8 @@ public class UserMapper {
     }
 
     public static User mapToEntity(UserDto dto) {
-        return new User(dto.getId(), dto.getName(), dto.getDateOfBirth());
+        return new User(dto.getId(), dto.getName(), dto.getDateOfBirth(),
+                dto.getUsername(), dto.getPassword(), dto.getRole());
     }
 
     public static UserDto mapToDto(User user) {
@@ -26,11 +27,15 @@ public class UserMapper {
         userDto.setId(user.getId());
         userDto.setName(user.getName());
         userDto.setDateOfBirth(user.getDateOfBirth());
+        userDto.setRole(user.getRole());
+        userDto.setUsername(user.getUsername());
+        userDto.setPassword(userDto.getPassword());
         return userDto;
     }
 
     public static String mapToString(UserDto user) {
         return user.getId() + " | " +
+                user.getUsername() + " | " +
                 user.getName().getName() + " | " +
                 user.getDateOfBirth();
     }

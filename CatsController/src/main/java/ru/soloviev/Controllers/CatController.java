@@ -1,186 +1,122 @@
 package ru.soloviev.Controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.WebUtils;
 import ru.soloviev.Dao.CatDao;
 import ru.soloviev.Dto.CatDto;
 import ru.soloviev.Dto.CatIdDto;
 import ru.soloviev.Dto.TwoIdsDto;
+import ru.soloviev.Dto.UserDto;
 import ru.soloviev.Mappers.CatMapper;
 import ru.soloviev.Models.Breed;
 import ru.soloviev.Models.Color;
 import ru.soloviev.Models.Name;
+import ru.soloviev.Models.Role;
+import ru.soloviev.Security.JWT.JwtUtils;
+import ru.soloviev.Services.AuthService;
 import ru.soloviev.Services.CatService;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-@Controller
+@RestController
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RequestMapping("/cats")
 public class CatController {
 
     private final CatService catService;
 
+    private final AuthService authService;
+
+    private final JwtUtils jwtUtils;
+
     @Autowired
-    public CatController(CatDao catDao){
+    public CatController(CatDao catDao, AuthService authService, JwtUtils jwtUtils){
         this.catService = new CatService(catDao);
+        this.authService = authService;
+        this.jwtUtils = jwtUtils;
     }
 
     @GetMapping()
-    public String getAllCats(Model model){
-        var list = catService.findAll();
-        model.addAttribute("lists", list);
-        return "cat-list";
+    public List<CatDto> getAllCats(HttpServletRequest req){
+        return filterById(req, getId(req), catService.findAll());
     }
 
     @GetMapping("/{id}")
-    public String getCatById(@Valid @PathVariable() Integer id, Model model){
-        try{
-            var cat = catService.find(id);
-            var list = new ArrayList<>();
-            list.add(cat);
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
-    }
-
-    @GetMapping("/delete")
-    public String catDeleteForm(Model model) {
-        model.addAttribute("cat", new CatIdDto());
-        return "cat-delete";
+    public CatDto getCatById(HttpServletRequest req, @Valid @PathVariable() Integer id){
+        var tmp = catService.find(id);
+        accessCheckById(req, tmp.getOwnerId());
+        return tmp;
     }
 
     @PostMapping("/delete")
-    public String catDeleteSubmit(@Valid @ModelAttribute CatIdDto catIdDto, Model model) {
-        try{
-            catService.find(catIdDto.getId());
-        }catch (Exception e){
-            return "400";
-        }
-        try{
-            var deletedCat = catService.delete(catIdDto);
-            model.addAttribute("cat", deletedCat);
-            return "cat-delete-return";
-        }catch (Exception e){
-            return "500";
-        }
-    }
-
-    @GetMapping("/add_friendship")
-    public String catAddFriendshipForm(Model model) {
-        model.addAttribute("cat", new TwoIdsDto());
-        return "cat-add-friendship";
+    public CatDto catDeleteSubmit(HttpServletRequest req, @Valid @RequestBody CatIdDto catIdDto) {
+        var tmp = catService.find(catIdDto.getId());
+        accessCheckById(req, tmp.getOwnerId());
+        return catService.delete(catIdDto);
     }
 
     @PostMapping("/add_friendship")
-    public String catAddFriendshipSubmit(@Valid @ModelAttribute TwoIdsDto catIds) {
-        try{
-            catService.find(catIds.getCat1().getId());
-            catService.find(catIds.getCat2().getId());
-        }catch (Exception e){
-            return "400";
-        }
-        try{
-            catService.addFriend(catIds.getCat1(), catIds.getCat2());
-            return "cat-add-friendship-return";
-        }catch (Exception e){
-            return "500";
-        }
-    }
-
-    @GetMapping("/delete_friendship")
-    public String catDeleteFriendshipForm(Model model) {
-        model.addAttribute("cat", new TwoIdsDto());
-        return "cat-delete-friendship";
+    public List<CatDto> catAddFriendshipSubmit(HttpServletRequest req, @Valid @RequestBody TwoIdsDto catIds) {
+        var tmp = catService.find(catIds.getCat1().getId());
+        accessCheckById(req, tmp.getOwnerId());
+        catService.find(catIds.getCat2().getId());
+        catService.addFriend(catIds.getCat1(), catIds.getCat2());
+        ArrayList<CatDto> list = new ArrayList<>();
+        list.add(catService.find(catIds.getCat1().getId()));
+        list.add(catService.find(catIds.getCat2().getId()));
+        return list;
     }
 
     @PostMapping("/delete_friendship")
-    public String catDeleteFriendshipSubmit(@Valid @ModelAttribute TwoIdsDto catIds) {
-        try{
-            catService.find(catIds.getCat1().getId());
-            catService.find(catIds.getCat2().getId());
-        }catch (Exception e){
-            return "400";
-        }
-        try{
-            catService.removeFriend(catIds.getCat1(), catIds.getCat2());
-            return "cat-delete-friendship-return";
-        }catch (Exception e){
-            return "500";
-        }
+    public List<CatDto> catDeleteFriendshipSubmit(HttpServletRequest req, @Valid @RequestBody TwoIdsDto catIds) {
+        var tmp = catService.find(catIds.getCat1().getId());
+        accessCheckById(req, tmp.getOwnerId());
+        catService.find(catIds.getCat2().getId());
+        catService.removeFriend(catIds.getCat1(), catIds.getCat2());
+        ArrayList<CatDto> list = new ArrayList<>();
+        list.add(catService.find(catIds.getCat1().getId()));
+        list.add(catService.find(catIds.getCat2().getId()));
+        return list;
     }
 
     @GetMapping("/find_cat_friends/{id}")
-    public String getCatFriends(@Valid @PathVariable() Integer id, Model model){
-        try{
-            var list = catService.find(id).getFriends().stream().map(catIdDto -> CatMapper.mapToString(catService.find(catIdDto.getId()))).toList();
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
+    public List<CatDto> getCatFriends(HttpServletRequest req, @Valid @PathVariable() Integer id){
+        return filterById(req, getId(req), catService.find(id).getFriends().stream().map(catIdDto -> catService.find(catIdDto.getId())).toList());
     }
 
     @GetMapping("/find_by_breed/{breed}")
-    public String findCatIdsByBreed(@PathVariable() String breed, Model model){
-        try{
-            List<CatDto> list = catService.findAll(new Breed(breed));
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
+    public List<CatDto> findCatIdsByBreed(HttpServletRequest req, @Valid @PathVariable() String breed){
+        return filterById(req, getId(req), catService.findAll(new Breed(breed)));
     }
 
     @GetMapping("/find_by_color/{color}")
-    public String findCatIdsByColor(@Valid @PathVariable() String color, Model model){
-        try{
-            List<CatDto> list = catService.findAll(Color.valueOf(color));
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
+    public List<CatDto> findCatIdsByColor(HttpServletRequest req, @Valid @PathVariable() Color color){
+        return filterById(req, getId(req), catService.findAll(color));
     }
 
     @GetMapping("/find_by_name/{name}")
-    public String findCatIdsByName(@PathVariable() String name, Model model){
-        try{
-            List<CatDto> list = catService.findAll(new Name(name));
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
+    public List<CatDto> findCatIdsByName(HttpServletRequest req, @Valid @PathVariable() String name){
+        return filterById(req, getId(req), catService.findAll(new Name(name)));
     }
 
     @GetMapping("/find_by_dob/{date}")
-    public String findCatIdsByDateOfBirth(@PathVariable() String date, Model model){
-        try{
-            List<CatDto> list = catService.findAll(LocalDate.parse(date));
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
+    public List<CatDto> findCatIdsByDateOfBirth(HttpServletRequest req, @Valid @PathVariable() LocalDate date){
+        return filterById(req, getId(req), catService.findAll(date));
     }
 
-    @GetMapping("/change_cat")
-    public String catChangeForm(Model model) {
-        model.addAttribute("cat", new CatDto());
-        return "cat-change";
-    }
-
-    @PostMapping("/change_cat")
-    public String catChangeSubmit(@Valid @ModelAttribute CatDto cat, Model model) {
-        try{
+    @PostMapping("/change")
+    public CatDto catChangeSubmit(HttpServletRequest req, @RequestBody CatDto cat) {
+            accessCheckById(req, cat.getOwnerId());
             var catOld = catService.find(cat.getId());
+
             if (cat.getName() != null)
                 catOld.setName(cat.getName());
 
@@ -193,14 +129,42 @@ public class CatController {
             if (cat.getDateOfBirth() != null)
                 catOld.setDateOfBirth(cat.getDateOfBirth());
 
-            model.addAttribute("cat", catService.save(catOld));
-            return "cat-change-return";
-        }catch (Exception e){
-            return "400";
-        }
+            return catService.update(catOld);
     }
 
     public CatService getCatService(){
         return catService;
+    }
+
+    public Role getRole(HttpServletRequest request){
+        if (jwtUtils.getJwtFromCookies(request) != null){
+            String name = jwtUtils.getUserNameFromJwtToken(jwtUtils.getJwtFromCookies(request));
+            UserDto details = authService.loadUserByUsername(name);
+            return details.getRole();
+        }else {
+            return Role.ADMIN;
+        }
+    }
+
+    public Integer getId(HttpServletRequest request){
+        if(jwtUtils.getJwtFromCookies(request) != null){
+            String name = jwtUtils.getUserNameFromJwtToken(jwtUtils.getJwtFromCookies(request));
+            UserDto details = authService.loadUserByUsername(name);
+            return details.getId();
+        }else {
+            return 1;
+        }
+    }
+
+    public void accessCheckById(HttpServletRequest req, Integer id){
+        if (getRole(req) != Role.ADMIN && !Objects.equals(id, getId(req)))
+            throw new AccessDeniedException("Access was denied");
+    }
+
+    public List<CatDto> filterById(HttpServletRequest req, Integer id, List<CatDto> catDtoList){
+        if (getRole(req) != Role.ADMIN)
+            return catDtoList.stream().filter(catDto -> catDto.getOwnerId().equals(id)).toList();
+        else
+            return catDtoList;
     }
 }

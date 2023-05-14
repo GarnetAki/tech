@@ -13,7 +13,7 @@ public class Breed {
         return breed;
     }
 
-    public void setBreed(String breed) {
+    public void setBreed(String breed) throws IllegalArgumentException {
         new Validator().validateString(breed);
 
         this.breed = breed;

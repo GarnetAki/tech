@@ -16,6 +16,10 @@ public class CatMapper {
         return catDao.findById(dto.getId()).orElseThrow();
     }
 
+    public static Cat mapToEntityUp(CatDto dto) {
+        return catDao.findById(dto.getId()).orElseThrow();
+    }
+
     public static Cat mapToEntity(CatDto dto) {
         return new Cat(dto.getId(), dto.getName(), dto.getBreed(), dto.getColor(),
                 dto.getDateOfBirth(), dto.getOwnerId());
