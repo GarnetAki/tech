@@ -40,8 +40,8 @@ dependencies {
     compileOnly group: 'org.jacoco', name: 'jacoco-maven-plugin', version: '0.8.1'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.0.5'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools:1.5.11.RELEASE'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:1.5.22.RELEASE'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools:1.5.12.RELEASE'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:1.5.12.RELEASE'
     testImplementation 'org.springframework.boot:spring-boot-starter-test:3.0.5'
 
     runtimeOnly 'org.postgresql:postgresql:42.5.4'

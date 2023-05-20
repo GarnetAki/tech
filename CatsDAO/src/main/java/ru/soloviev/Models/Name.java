@@ -13,7 +13,7 @@ public class Name {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(String name) throws IllegalArgumentException {
         new Validator().validateName(name);
 
         this.name = name;

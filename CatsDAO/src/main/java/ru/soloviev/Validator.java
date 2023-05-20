@@ -1,9 +1,7 @@
 package ru.soloviev;
 
-import org.apache.commons.httpclient.HttpException;
-
 public class Validator {
-    public void validateName(String string){
+    public void validateName(String string) throws IllegalArgumentException{
         if (string == null) throw new NullPointerException();
 
         String[] subs = string.split(" ");
@@ -11,7 +9,7 @@ public class Validator {
         for (String sub : subs) validateString(sub);
     }
 
-    public void validateString(String string){
+    public void validateString(String string) throws IllegalArgumentException{
         if (string == null) throw new NullPointerException();
 
         if (!(string.matches("^[A-Z][a-z]*$")))

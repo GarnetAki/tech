@@ -1,200 +1,151 @@
 package ru.soloviev.Controllers;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.WebUtils;
 import ru.soloviev.Dao.CatDao;
 import ru.soloviev.Dao.UserDao;
-import ru.soloviev.Dto.CatDto;
-import ru.soloviev.Dto.TwoIdsDto;
-import ru.soloviev.Dto.UserDto;
-import ru.soloviev.Dto.UserIdDto;
+import ru.soloviev.Dto.*;
+import ru.soloviev.Exchanges.StringResponse;
 import ru.soloviev.Mappers.CatMapper;
 import ru.soloviev.Models.Name;
+import ru.soloviev.Models.Role;
+import ru.soloviev.Security.JWT.JwtUtils;
+import ru.soloviev.Services.AuthService;
 import ru.soloviev.Services.UserService;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-@Controller
+@RestController
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
 
     private final UserService userService;
 
     private final CatController catController;
 
+    private final AuthService authService;
+
+    private final PasswordEncoder encoder;
+
     @Autowired
-    public UserController(UserDao userDao, CatDao catDao){
+    public UserController(UserDao userDao, CatDao catDao, AuthService authService, JwtUtils jwtUtils, PasswordEncoder encoder){
         this.userService = new UserService(userDao);
-        catController = new CatController(catDao);
+        catController = new CatController(catDao, authService, jwtUtils);
+        this.authService = authService;
+        this.encoder = encoder;
     }
 
     @GetMapping("/users")
-    public String getAllUsers(Model model){
-        var list = userService.findAll();
-        model.addAttribute("lists", list);
-        return "user-list";
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserDto> getAllUsers(){
+        return userService.findAll();
     }
 
-    @GetMapping("/users/{id}")
-    public String getUserById(@Valid @PathVariable() Integer id, Model model){
-        try{
-            var user = userService.find(id);
-            var list = new ArrayList<>();
-            list.add(user);
-            model.addAttribute("lists", list);
-            return "user-list";
-        }catch (Exception e){
-            return "404";
-        }
-    }
+    @GetMapping("/users/get_user/{id}")
+    public UserDto getUserById(HttpServletRequest req, @Valid @PathVariable() Integer id){
+        catController.accessCheckById(req, id);
 
-    @GetMapping("/users/create")
-    public String userCreateForm(Model model) {
-        model.addAttribute("user", new UserDto());
-        return "user-create";
+        return userService.find(id);
     }
 
     @PostMapping("/users/create")
-    public String userCreateSubmit(@Valid @ModelAttribute UserDto userDto, Model model) {
-        try{
-            var savedUser = userService.save(userDto);
-            model.addAttribute("user", savedUser);
-            return "user-create-return";
-        }catch (Exception e){
-            return "400";
-        }
-    }
-
-    @GetMapping("/users/delete")
-    public String userDeleteForm(Model model) {
-        model.addAttribute("user", new UserIdDto());
-        return "user-delete";
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserDto userCreateSubmit(@Valid @RequestBody UserDto userDto) {
+        userDto.setId(null);
+        return userService.save(userDto);
     }
 
     @PostMapping("/users/delete")
-    public String userDeleteSubmit(@Valid @ModelAttribute UserIdDto userIdDto, Model model) {
-        try{
-            for (var cat : catController.getCatService().findAll()){
-                if (cat.getOwnerId().equals(userIdDto.getId()))
-                    catController.getCatService().delete(CatMapper.mapToIdDto(CatMapper.mapToEntity(cat)));
-            }
-        }catch (Exception e){
-            return "500";
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserDto userDeleteSubmit(@Valid @RequestBody UserIdDto userIdDto) {
+        for (var cat : catController.getCatService().findAll()){
+            if (cat.getOwnerId().equals(userIdDto.getId()))
+                catController.getCatService().delete(CatMapper.mapToIdDto(CatMapper.mapToEntity(cat)));
         }
-        try{
-            userService.find(userIdDto.getId());
-        }catch (Exception e){
-            return "400";
-        }
-        try{
-            var deletedUser = userService.delete(userIdDto);
-            model.addAttribute("user", deletedUser);
-            return "user-delete-return";
-        }catch (Exception e){
-            return "500";
-        }
+
+        userService.find(userIdDto.getId());
+
+        return userService.delete(userIdDto);
     }
 
     @GetMapping("/users/find_by_name/{name}")
-    public String findUserIdsByName(@PathVariable() String name, Model model){
-        try{
-            List<UserDto> list = userService.findAll(new Name(name));
-            model.addAttribute("lists", list);
-            return "user-list";
-        }catch (Exception e){
-            return "404";
-        }
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserDto> findUserIdsByName(@Valid @PathVariable() String name) throws IllegalArgumentException{
+        return userService.findAll(new Name(name));
     }
 
     @GetMapping("/users/find_by_dob/{date}")
-    public String findUserIdsByDateOfBirth(@PathVariable() String date,  Model model){
-        try{
-            List<UserDto> list = userService.findAll(LocalDate.parse(date));
-            model.addAttribute("lists", list);
-            return "user-list";
-        }catch (Exception e){
-            return "404";
-        }
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserDto> findUserIdsByDateOfBirth(@Valid @PathVariable() LocalDate date){
+        return userService.findAll(date);
     }
 
-    @GetMapping("/users/change_user")
-    public String userChangeForm(Model model) {
-        model.addAttribute("user", new UserDto());
-        return "user-change";
-    }
+    @PostMapping("/users/change")
+    public UserDto userChangeSubmit(HttpServletRequest req, @RequestBody UserDto user) {
+        catController.accessCheckById(req, user.getId());
 
-    @PostMapping("/users/change_user")
-    public String userChangeSubmit(@Valid @ModelAttribute UserDto user, Model model) {
-        try{
-            var userOld = userService.find(user.getId());
+        var userOld = userService.find(user.getId());
 
-            if (user.getName() != null)
-                userOld.setName(user.getName());
+        if (user.getName() != null)
+            userOld.setName(user.getName());
 
-            if (user.getDateOfBirth() != null)
-                userOld.setDateOfBirth(user.getDateOfBirth());
+        if (user.getDateOfBirth() != null)
+            userOld.setDateOfBirth(user.getDateOfBirth());
 
-            model.addAttribute("user", userService.save(userOld));
-            return "user-change-return";
-        }catch (Exception e){
-            return "400";
+        if (user.getUsername() != null){
+            if (authService.existsByLogin(user.getUsername())) {
+                throw new RequestRejectedException("Error: Username is already taken!");
+            }
+            userOld.setUsername(user.getUsername());
         }
+
+        if (user.getPassword() != null)
+            userOld.setPassword(encoder.encode(user.getPassword()));
+
+        return userService.save(userOld);
     }
 
     @GetMapping("/users/get_cats/{id}")
-    public String getUserCats(@Valid @PathVariable() Integer id, Model model){
-        try {
-            userService.find(id);
-        }catch (Exception e){
-            return "404";
-        }
-        try{
-            UserIdDto userIdDto = new UserIdDto(id);
-            var list = catController.getCatService().findAllByOwner(userIdDto);
-            model.addAttribute("lists", list);
-            return "cat-list";
-        }catch (Exception e){
-            return "404";
-        }
-    }
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CatDto> getUserCats(@Valid @PathVariable() Integer id){
+        userService.find(id);
+        UserIdDto userIdDto = new UserIdDto(id);
 
-    @GetMapping("/cats/change_owner")
-    public String changeCatOwnerForm(Model model) {
-        model.addAttribute("cat", new TwoIdsDto());
-        return "cat-change-owner";
+        return catController.getCatService().findAllByOwner(userIdDto);
     }
 
     @PostMapping("/cats/change_owner")
-    public String changeCatOwnerSubmit(@Valid @ModelAttribute TwoIdsDto idsDto, Model model) {
-        try{
-            userService.find(idsDto.getCat2().getId());
-            var cat = catController.getCatService().find(idsDto.getCat1().getId());
-            cat.setOwnerId(idsDto.getCat2().getId());
-            model.addAttribute("cat", catController.getCatService().save(cat));
-            return "cat-change-owner-return";
-        }catch (Exception e){
-            return "400";
-        }
-    }
+    @PreAuthorize("hasRole('ADMIN')")
+    public CatDto changeCatOwnerSubmit(@Valid @RequestBody TwoIdsDto idsDto) {
+        userService.find(idsDto.getCat2().getId());
+        var cat = catController.getCatService().find(idsDto.getCat1().getId());
+        cat.setOwnerId(idsDto.getCat2().getId());
 
-    @GetMapping("/cats/create")
-    public String catCreateForm(Model model) {
-        model.addAttribute("cat", new CatDto());
-        return "cat-create";
+        return catController.getCatService().update(cat);
     }
 
     @PostMapping("/cats/create")
-    public String catCreateSubmit(@Valid @ModelAttribute CatDto catDto, Model model) {
-        try{
-            var savedCat = catController.getCatService().save(catDto);
-            model.addAttribute("cat", savedCat);
-            return "cat-create-return";
-        }catch (Exception e){
-            return "400";
-        }
+    public CatDto catCreateSubmit(HttpServletRequest req, @Valid @RequestBody CatDto catDto) {
+        catController.accessCheckById(req, catDto.getOwnerId());
+
+        catDto.setId(null);
+        return catController.getCatService().save(catDto);
     }
+
+    public UserService getUserService(){
+        return userService;
+    }
+
 }

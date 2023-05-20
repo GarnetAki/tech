@@ -2,6 +2,7 @@ package ru.soloviev.Entities;
 
 import jakarta.persistence.*;
 import ru.soloviev.Models.Name;
+import ru.soloviev.Models.Role;
 
 import java.time.LocalDate;
 
@@ -14,14 +15,24 @@ public class User {
 
     private String name;
 
+    private String username;
+
+    private String password;
+
+    @Enumerated(value = EnumType.STRING)
+    private Role role;
+
     private String dateOfBirth;
 
     public User(){}
 
-    public User(Integer id, Name name, LocalDate dateOfBirth){
+    public User(Integer id, Name name, LocalDate dateOfBirth, String username, String password, Role role){
         this.id = id;
         this.name = name.getName();
         this.dateOfBirth = dateOfBirth.toString();
+        this.username = username;
+        this.password = password;
+        this.role = role;
     }
 
     public Integer getId() {
@@ -46,5 +57,29 @@ public class User {
 
     public void setDateOfBirth(LocalDate dateOfBirth) {
         this.dateOfBirth = dateOfBirth.toString();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String login) {
+        this.username = login;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setColor(Role role) {
+        this.role = role;
     }
 }

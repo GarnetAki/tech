@@ -9,7 +9,8 @@ import ru.soloviev.Mappers.UserMapper;
 import java.util.List;
 
 public class UserService {
-    private final UserDao userDao;
+
+    private UserDao userDao;
 
     private final UserMapper userMapper;
 

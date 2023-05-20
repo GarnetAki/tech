@@ -21,6 +21,18 @@ public class CatService {
         catMapper = new CatMapper(this.catDao);
     }
 
+    public CatDto update(CatDto cat) {
+        var newCat = catMapper.mapToEntityUp(cat);
+        newCat.setCatName(cat.getName());
+        newCat.setBreed(cat.getBreed());
+        newCat.setColor(cat.getColor());
+        newCat.setDateOfBirth(cat.getDateOfBirth());
+        newCat.setOwner(cat.getOwnerId());
+        catDao.saveAndFlush(newCat);
+
+        return catMapper.mapToDto(newCat);
+    }
+
     public CatDto save(CatDto cat) {
         var newCat = catMapper.mapToEntity(cat);
         catDao.saveAndFlush(newCat);
